@@ -415,8 +415,58 @@ Analysis:
 The `0 msec` query time indicates successful caching of the DNS response, confirming the effectiveness of our settings.
 
 
-#### Master DNS Zone
+#### Master DNS Zone (UNDER CONSTRUCTION! ⚠️)
+To define zones you have to define it in  `named.conf.local`
+
+```bash
+root@ubuntuserver-10:/etc/bind# cat  named.conf.local 
+//
+// Do any local configuration here
+//
+
+// Consider adding the 1918 zones here, if they are not used in your
+// organization
+//include "/etc/bind/zones.rfc1918";
 
 
+```
+Define your zone name and type and database:
+```bash
+root@ubuntuserver-10:/etc/bind# cat  named.conf.local 
+//
+// Do any local configuration here
+//
+
+// Consider adding the 1918 zones here, if they are not used in your
+// organization
+//include "/etc/bind/zones.rfc1918";
+
+zone "FinZone" {
+#zone type
+             type master;
+#database:
+             file "/etc/bind/db.finzone.local";
+}
+
+```
+Before start create the database of zone you sshould know some concepts:
+to define zones we need SOA record and SOA records contains:
+   - Serial No (Integer) 
+   - Refresh Interval (seconds)
+   - Retry Interval  (seconds)
+   - Expire (seconds)
+   - Cache TTL (seconds) - for client cache 
+   - SOA TTL - for slave/worker/secondery
+   
+   
+now lets create database for `FinZone`:
+
+```bash
+root@ubuntuserver-10:/etc/bind# nano /etc/bind/db.finzone.local
+#SOA TTL 
+$TTL 600
+@	IN	SOA rfinland.local
+
+```
 
 
