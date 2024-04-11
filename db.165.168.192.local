@@ -1,0 +1,14 @@
+$TTL 600
+@       IN      SOA     finezone.local.   root.finezone.local. (
+        10      ; Serial Number
+        1200    ; Refresh Interval
+        300     ; Retry Interval
+        86400   ; Expiry
+        7200 )  ; Minimum Cache TTL
+
+@       IN      NS      ubuntuserver.finezone.local.
+10      IN      PTR     ubuntuserver.finezone.local.
+60      IN      PTR     www
+70      IN      PTR     mail
+80      IN      PTR     dash
+90      IN      PTR     blog
