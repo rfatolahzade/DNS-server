@@ -131,6 +131,10 @@ $TTL 600
 90      IN      PTR     blog
 ```
 In this database file,  `PTR` records are defined to map IP addresses to corresponding domain names within the `finezone.local` domain. Each PTR record specifies a reverse lookup for a specific IP address, associating it with its corresponding domain name.
+Restart bind service:
+```bash
+systemctl restart bind9 && rndc reload
+```
 To verify the configuration of PTR records and perform a reverse DNS lookup, you can use the dig command. Here's how you can execute the command and interpret the results:
 ```bash
 [root@centos-20 ~]# dig @192.168.165.10  -x 192.168.165.70
