@@ -1,0 +1,13 @@
+$TTL 600
+@       IN      SOA     finezone.local.   root.finezone.local. (
+        10      ;serial No
+        1200    ;refresh Interval
+        300     ;retry Interval
+        86400   ;Expiration
+        7200 )  ;cache TTL
+@       IN      NS      ubuntuserver.finezone.local.
+ubuntuserver.finezone.local.    IN      A 192.168.165.10
+www.finezone.local.     IN      A       192.168.165.60
+mail.finezone.local.    IN      A       192.168.165.70
+dash.finezone.local.    IN      A       192.168.165.80
+blog.finezone.local.    IN      A       192.168.165.90
