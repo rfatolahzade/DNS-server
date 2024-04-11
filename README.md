@@ -453,17 +453,18 @@ Create the zone database file:
 root@ubuntuserver-10:/etc/bind# nano /etc/bind/db.finezone.local
 $TTL 600
 @       IN      SOA     finezone.local.   root.finezone.local. (
-        10      ;serial No
-        1200    ;refresh Interval
-        300     ;retry Interval
-        86400   ;Expiration
-        7200 )  ;cache TTL
+        10      ; Serial Number
+        1200    ; Refresh Interval
+        300     ; Retry Interval
+        86400   ; Expiry
+        7200 )  ; Minimum Cache TTL
+
 @       IN      NS      ubuntuserver.finezone.local.
-ubuntuserver.finezone.local.    IN      A 192.168.165.10
-www.finezone.local.     IN      A       192.168.165.60
-mail.finezone.local.    IN      A       192.168.165.70
-dash.finezone.local.    IN      A       192.168.165.80
-blog.finezone.local.    IN      A       192.168.165.90
+ubuntuserver.finezone.local.    IN      A       192.168.165.10
+www     IN      A       192.168.165.60
+mail    IN      A       192.168.165.70
+dash    IN      A       192.168.165.80
+blog    IN      A       192.168.165.90
 
 ```
 In my configuration, I've specified the hostname `ubuntuserver.finezone.local` as the nameserver `(NS)` for the `finezone.local` domain. This means that when clients query for records within the `finezone.local` domain, they will be directed to the DNS server identified by the hostname `ubuntuserver.finezone.local`.
