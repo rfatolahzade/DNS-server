@@ -10,3 +10,8 @@ zone "finezone.local" {
              type master;
              file "/etc/bind/db.finezone.local";
 };
+
+zone "165.168.192.in-addr.arpa" {
+             type master;
+             file "/etc/bind/db.165.168.192.local";
+};
