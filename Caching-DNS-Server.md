@@ -1,4 +1,4 @@
-#Configuring as a Caching DNS Server:
+# Configuring as a Caching DNS Server:
 
 To configure Ubuntu server as a caching DNS server, edit the `/etc/bind/named.conf.options` file then add `recursion yes;` to config file to enable caching. 
 The directive` recursion yes`; in the BIND configuration file (`named.conf.options`) enables recursive DNS resolution on the DNS server.
