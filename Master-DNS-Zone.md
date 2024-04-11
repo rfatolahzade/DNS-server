@@ -1,5 +1,4 @@
-
-#### Setting Up a Master DNS Zone
+# Setting Up a Master DNS Zone
 In this guide, I'll configure a single Master DNS server in Static mode for the finezone.local domain with a single worker.
 
 ##### 1.Configure  `named.conf.local`
