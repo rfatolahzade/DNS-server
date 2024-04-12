@@ -12,7 +12,6 @@ timedatectl set-timezone Asia/Tehran
 yum install chrony -y
 systemctl enable --now chronyd
 ```
-
 make sure on Worker node (CentOS) bind packege installed:
 ```bash
 [root@centos-20 ~]# yum search server | grep -i "domain name system"
@@ -102,7 +101,73 @@ ubuntuserver.finezone.local. 600 IN     A       192.168.165.10
 ```
 On Client node:
 ```bash
-dig @192.168.165.20 mail.finezone.local
+#sudo systemctl stop firewalld in future repo Im going to define iptable role for it.
+root@worker-30:~# dig @192.168.165.20 mail.finezone.local
+
+; <<>> DiG 9.18.18-0ubuntu0.22.04.2-Ubuntu <<>> @192.168.165.20 mail.finezone.local
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; WARNING: .local is reserved for Multicast DNS
+;; You are currently testing what happens when an mDNS query is leaked to DNS
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 18393
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: c71349025bd35f40f6474f3e6619065c2e02f0dd7a10f35e (good)
+;; QUESTION SECTION:
+;mail.finezone.local.           IN      A
+
+;; ANSWER SECTION:
+mail.finezone.local.    600     IN      A       192.168.165.70
+
+;; AUTHORITY SECTION:
+finezone.local.         600     IN      NS      ubuntuserver.finezone.local.
+
+;; ADDITIONAL SECTION:
+ubuntuserver.finezone.local. 600 IN     A       192.168.165.10
+
+;; Query time: 12 msec
+;; SERVER: 192.168.165.20#53(192.168.165.20) (UDP)
+;; WHEN: Fri Apr 12 13:31:01 +0330 2024
+;; MSG SIZE  rcvd: 135
 
 ```
+Also you can check master node too.
+If you define these two nodes as nameserver you can have name reolotion and name reservation (based on which node is down) live.
+on ubuntu client:
+```bash
+nano /etc/netplan/00-installer-config.yaml
+# This is the network config written by 'subiquity'
+network:
+  ethernets:
+    enp0s3:
+      dhcp4: false
+      addresses: [192.168.165.30/24]
+      routes:
+          - to: default
+            via: 192.168.165.1
+      nameservers:
+        addresses: [192.168.165.20, 192.168.165.10]
+  version: 2
 
+```
+To ensure that systemd-resolved uses the DNS settings specified in Netplan and updates /etc/resolv.conf accordingly, you need to disable its DNSStubListener feature.
+Here's how you can do it via edit the systemd-resolved configuration file:
+```bash
+ nano /etc/systemd/resolved.conf
+#Add or modify the following line to disable DNSStubListener:
+DNSStubListener=no
+```
+save and close then run:
+```bash
+systemctl restart systemd-resolved
+ cat /etc/resolv.conf 
+# operation for /etc/resolv.conf.
+
+nameserver 192.168.165.20
+nameserver 192.168.165.10
+search .
+```
+Ensure Failover Capability by configuring both master and worker nodes as DNS servers on client nodes, you ensure failover capability. If one of the DNS servers goes down, client nodes will automatically switch to the other available DNS server for uninterrupted DNS resolution.
