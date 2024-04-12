@@ -7,4 +7,4 @@ To delve deeper into DNS server setup, consider exploring these articles:
 - [Concepts-Installation](./Concepts-Installation.md)
 - [Caching-DNS-Server](./Caching-DNS-Server.md)
 - [Setting Up a Master DNS Zone](./Master-DNS-Zone.md)
-- [Defining Worker DNS Server]
+- [Defining Worker DNS Server](./Worker.md)
