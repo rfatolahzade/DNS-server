@@ -171,3 +171,132 @@ nameserver 192.168.165.10
 search .
 ```
 Ensure Failover Capability by configuring both master and worker nodes as DNS servers on client nodes, you ensure failover capability. If one of the DNS servers goes down, client nodes will automatically switch to the other available DNS server for uninterrupted DNS resolution.
+
+#### TSIG (Transaction Signature)
+Also referred to as Secret Key Transaction Authentication, ensures that DNS packets originate from an authorized sender by using shared secret keys and one-way hashing to add a cryptographic signature to the DNS packets.
+##### Setup on Master Node:
+Generate a TSIG key on the Master node using the following command:
+```bash
+tsig-keygen -a HMAC-MD5 dnskey >  /etc/bind/named.conf.tsig
+
+```
+Include the generated TSIG key in the BIND configuration file /etc/bind/named.conf by adding the following line:
+
+```bash
+ include "/etc/bind/named.conf.tsig";
+```
+Allow zone transfer to the Worker node by adding the following configuration to /etc/bind/named.conf.local:
+Add `allow-transfer { key "dnskey"; };` :
+```bash
+zone "finezone.local" {
+    type master;
+    file "/etc/bind/db.finezone.local";
+    allow-transfer { key "dnskey"; };
+};
+```
+Modify the zone file /etc/bind/db.finezone.local to include necessary DNS records such as NS records and A records.
+```bash
+root@ubuntuserver-10:/etc/bind# cat /etc/bind/db.finezone.local
+$TTL 600
+@       IN      SOA     finezone.local.   root.finezone.local. (
+        11      ; Serial Number
+        1200    ; Refresh Interval
+        300     ; Retry Interval
+        86400   ; Expiry
+        7200 )  ; Minimum Cache TTL
+
+@       IN      NS      ubuntuserver.finezone.local.
+@       IN      NS      centos.finezone.local.
+ubuntuserver.finezone.local.    IN      A       192.168.165.10
+centos.finezone.local.    IN      A       192.168.165.20
+www     IN      A       192.168.165.60
+mail    IN      A       192.168.165.70
+dash    IN      A       192.168.165.80
+blog    IN      A       192.168.165.90
+print   IN      A       192.168.165.100
+```
+Restart the BIND service to apply the changes:
+```bash
+systemctl restart bind9
+rndc reload
+```
+##### Configuration on Worker Node
+Restart named service to force it zone transfering,Check for zone transfer logs in /var/log/messages to verify if zone transfer is failing.
+If zone transfer fails, add the generated TSIG key to the BIND configuration file /etc/named.conf on the Worker node:
+```bash
+[root@centos ~]# grep transfer  /var/log/messages 
+Apr 12 14:18:30 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: connected using 192.168.165.20#38307
+Apr 12 14:18:30 centos named[2225]: zone finezone.local/IN: transferred serial 10
+Apr 12 14:18:30 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: Transfer status: success
+Apr 12 14:18:30 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: Transfer completed: 1 messages, 8 records, 235 bytes, 0.012 secs (19583 bytes/sec)
+Apr 12 14:53:47 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: failed to connect: connection refused
+Apr 12 14:53:47 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: Transfer status: connection refused
+Apr 12 14:53:47 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: Transfer completed: 0 messages, 0 records, 0 bytes, 0.008 secs (0 bytes/sec)
+Apr 12 15:00:41 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: failed to connect: connection refused
+Apr 12 15:00:41 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: Transfer status: connection refused
+Apr 12 15:00:41 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: Transfer completed: 0 messages, 0 records, 0 bytes, 0.008 secs (0 bytes/sec)
+Apr 12 16:55:09 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: failed to connect: connection refused
+Apr 12 16:55:09 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: Transfer status: connection refused
+Apr 12 16:55:09 centos named[2225]: transfer of 'finezone.local/IN' from 192.168.165.10#53: Transfer completed: 0 messages, 0 records, 0 bytes, 0.006 secs (0 bytes/sec)
+Apr 12 16:56:03 centos named[2225]: zone finezone.local/IN: refresh: skipping zone transfer as master 192.168.165.10#53 (source 0.0.0.0#0) is unreachable (cached)
+```
+As you can see zone transfering failed.
+To fix: paste generated sig file to `/etc/named.conf ` on Worker node:
+```bash
+key "dnskey" {
+        algorithm hmac-md5;
+        secret "XklbnFYLTvw4kxHrQkfcmA==";
+};
+
+server 192.168.165.10 {
+        keys { dnskey; };
+};
+
+```
+Restart the BIND service on the Worker node to apply the configuration changes:
+```bash
+systemctl restart named
+rndc reload
+```
+Check the logs in /var/log/messages to ensure successful zone transfer.
+```bash
+[root@centos ~]# cat /var/log/messages | grep transfer
+..
+ zone finezone.local/IN: transferred serial 11: TSIG 'dnskey'
+..
+```
+Test the DNS resolution for a specific record, for example, the print record:
+```bash
+[root@centos ~]# dig @localhost print.finezone.local
+
+; <<>> DiG 9.11.4-P2-RedHat-9.11.4-26.P2.el7_9.15 <<>> @localhost print.finezone.local
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; WARNING: .local is reserved for Multicast DNS
+;; You are currently testing what happens when an mDNS query is leaked to DNS
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 37466
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 2, ADDITIONAL: 3
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;print.finezone.local.          IN      A
+
+;; ANSWER SECTION:
+print.finezone.local.   600     IN      A       192.168.165.100
+
+;; AUTHORITY SECTION:
+finezone.local.         600     IN      NS      ubuntuserver.finezone.local.
+finezone.local.         600     IN      NS      centos.finezone.local.
+
+;; ADDITIONAL SECTION:
+centos.finezone.local.  600     IN      A       192.168.165.20
+ubuntuserver.finezone.local. 600 IN     A       192.168.165.10
+
+;; Query time: 7 msec
+;; SERVER: ::1#53(::1)
+;; WHEN: Fri Apr 12 16:40:04 +0330 2024
+;; MSG SIZE  rcvd: 145
+```
+Verify the DNS resolution results to ensure the desired IP address is returned.
